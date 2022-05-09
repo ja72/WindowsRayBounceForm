@@ -1,9 +1,47 @@
-﻿using System.Drawing;
+﻿    using System;
+using System.Drawing;
 using System.Numerics;
 
 namespace JA.World
 {
-    using System;
+    using JA.Gdi;
+    using System.Drawing.Drawing2D;
+
+    public class Ellipse : Object
+    {
+        public Ellipse(Color color, Vector2 position, float angle, float majorAxis, float minorAxis)
+            : base(color, position, angle)
+        {
+            this.MajorAxis = majorAxis;
+            this.MinorAxis = minorAxis;
+        }
+        public float MajorAxis { get; }
+        public float MinorAxis { get; }
+
+        #region Interactions
+        public override Vector2 GetClosestPointTo(Vector2 point)
+        {
+            throw new NotImplementedException();
+        }
+        public override bool Contains(Vector2 point)
+        {
+            point = ToLocal(point);
+            return Math.Pow(point.X / MajorAxis, 2) + Math.Pow(point.Y / MinorAxis, 2) <= 1;
+        }
+        public override bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
+
+        #region Drawing
+        public override void Draw(Graphics g, Scene scene)
+        {
+            var color = scene.IsSelected(this) ? Color.AddH(0.12f) : Color;
+            scene.DrawEllipse(g, color, Position, Angle, MajorAxis, MinorAxis);
+        }
+        #endregion
+    }
 
     public class Circle : Object
     {
@@ -15,9 +53,11 @@ namespace JA.World
 
         public float Radius { get; }
 
-        public Vector2 GetClosestPointTo(Vector2 point)
+        #region Interactions
+        public override Vector2 GetClosestPointTo(Vector2 point)
         {
-            return Position - Radius * Vector2.Normalize(point - Position);
+            // add 1 radius towards point from position
+            return Position + Radius * Vector2.Normalize(point - Position);
         }
 
         public override bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true)
@@ -39,15 +79,19 @@ namespace JA.World
             return false;
         }
 
-        public override void Draw(Graphics g, Scene scene)
-        {
-            scene.DrawCircle(g, this, Radius);
-        }
-
         public override bool Contains(Vector2 position)
         {
             position = ToLocal(position);
-            return position.LengthSquared() <= Radius*Radius;
+            return position.LengthSquared() <= Radius * Radius;
         }
+        #endregion
+
+        #region Drawing
+        public override void Draw(Graphics g, Scene scene)
+        {
+            var color = scene.IsSelected(this) ? Color.AddH(0.12f) : Color;
+            scene.DrawCircle(g, color, Position, Angle, Radius);
+        } 
+        #endregion
     }
 }

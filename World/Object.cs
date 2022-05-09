@@ -22,10 +22,12 @@ namespace JA.World
         public float Angle { get; set; }
         public Color Color { get; set; }
 
+        public abstract bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true);
+        public abstract Vector2 GetClosestPointTo(Vector2 point);
         public abstract bool Contains(Vector2 point);
         public abstract void Draw(Graphics g, Scene scene);
-        public abstract bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true);
 
+        #region Transformations
         public Vector2 FromLocal(Vector2 node)
         {
             return Position + Vector2.Transform(node, Matrix3x2.CreateRotation(Angle));
@@ -81,6 +83,7 @@ namespace JA.World
         public Ray FromLocal(Ray ray) => new Ray(FromLocal(ray.Origin), FromLocalDirection(ray.Direction));
         public Ray ToLocal(Ray ray) => new Ray(ToLocal(ray.Origin), ToLocalDirection(ray.Direction));
         public Segment FromLocal(Segment segment) => new Segment(FromLocal(segment.A), FromLocal(segment.B));
-        public Segment ToLocal(Segment segment) => new Segment(ToLocal(segment.A), ToLocal(segment.B));
+        public Segment ToLocal(Segment segment) => new Segment(ToLocal(segment.A), ToLocal(segment.B)); 
+        #endregion
     }
 }

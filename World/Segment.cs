@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace JA.World
 {
-    public readonly struct Segment  : IEquatable<Segment>
+    public readonly struct Segment : IEquatable<Segment>
     {
         public Segment(Vector2 a, Vector2 b) : this()
         {
@@ -20,9 +20,11 @@ namespace JA.World
 
         public Vector2 Direction { get => Vector2.Normalize(B - A); }
         public Vector2 Normal { get => Vector2.Normalize(new Vector2(A.Y - B.Y, B.X - A.X)); }
+        public float Offset => Vector2.Dot(Normal, A);
         public float Length { get => Vector2.Distance(A, B); }
+        public float LengthSquared { get => Vector2.DistanceSquared(A, B); }
         public Segment Flip() => new Segment(B, A);
-        public Segment Offset(Vector2 delta) => new Segment(A + delta, B + delta);
+        public Segment Translate(Vector2 delta) => new Segment(A + delta, B + delta);
         public Segment Rotate(float angle)
         {
             var R = Matrix3x2.CreateRotation(angle);

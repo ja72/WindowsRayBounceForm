@@ -67,10 +67,11 @@ namespace JA.World
         public Vector2 Direction { get; }
 
         public Ray Flip() => new Ray(Origin, -Direction);
+        public Ray Parallel(float distance) => new Ray(Origin + Direction.Orthogonal() * distance, Direction);
 
         public Vector2 GetPointAlong(float distance) => Origin + distance * Direction;
 
-        public float GetDistanceAlong(Vector2 point) 
+        public float GetDistanceAlong(Vector2 point)
             => Vector2.Dot(Direction, point - Origin);
 
         public bool Contains(Vector2 point, float tolerance = 1e-6f)
@@ -87,7 +88,7 @@ namespace JA.World
             if (Math.Abs(x) > 0)
             {
                 distance = ray.Direction.Cross(ray.Origin - Origin) / x;
-                return distance>=0;
+                return distance >= 0;
             }
             distance = 0;
             return false;
@@ -107,5 +108,13 @@ namespace JA.World
             return false;
         }
 
+        public float GetDistanceToLine(Vector2 normal, float offset)
+        {
+            //tex:Ray with origin $\vec{p}$ and direction $\vec{e}$ intersectrs a plane
+            // with normal $\vec{n}$ and offset $h$ from the origin at the following
+            // lolcation $$t = \frac{h-\vec{n}\cdot\vec{o}}{\vec{n}\cdot\vec{e}}$$
+
+            return (offset - Vector2.Dot(normal, Origin)) / Vector2.Dot(normal, Direction);
+        }
     }
 }

@@ -47,5 +47,7 @@ namespace JA
 
         public static float Cross(this Vector2 u, Vector2 v)
             => u.X * v.Y - u.Y * v.X;
+
+        public static Vector2 Orthogonal(this Vector2 vector) => new Vector2(-vector.Y, vector.X);
     }
 }

@@ -53,6 +53,15 @@ namespace JA.World
             };
         }
 
+        public void Update(float elapsedSeconds)
+        {
+            for (int i = 0; i < Objects.Count; i++)
+            {
+                Objects[i].Angle += (float)(Math.PI / 144);
+            }
+            Target.Invalidate();
+        }
+
         public Control Target { get; }
         public float ModelSize { get; set; }
         public List<Object> Objects { get; }
@@ -96,64 +105,65 @@ namespace JA.World
             Vector2 dir = Vector2.Transform(Vector2.UnitX, Matrix3x2.CreateRotation(rayAngle));
             ray = new Ray(mousePos, dir);
 
-            float distance = ModelSize / 2;
-
+            Ray[] beams = new Ray[17];
+            float[] distance = new float[beams.Length];
+            float width = 1.0f;
+            for (int i = 0; i < beams.Length; i++)
             {
-                var seg1 = new Segment(new Vector2(1f, -3f), new Vector2(3f, -1f));
-                DrawSegment(g, Color.Purple, seg1);
-                if (seg1.Hit(ray, out var hit1, out var n1))
-                {
-                    //DrawPoint(g, Color.Gold, hit1, 8);
-                    DrawRay(g, Color.Gold, new Ray(hit1, n1), 1f);
-                }
-
-                var seg2 = seg1.Offset(2 * Vector2.UnitX).Flip();
-                DrawSegment(g, Color.Brown, seg2);
-                if (seg2.Hit(ray, out var hit2, out var n2))
-                {
-                    //DrawPoint(g, Color.Wheat, hit2, 8);
-                    DrawRay(g, Color.Wheat, new Ray(hit2, n2), 1f);
-                }
+                beams[i] = ray.Parallel(width * (i / (beams.Length - 1f) - 0.5f));
+                distance[i] = ModelSize / 2;
             }
 
-            for (int i = 0; i < Objects.Count; i++)
+            //float distance = ModelSize / 2;
+
+
+            for (int i_body = 0; i_body < Objects.Count; i_body++)
             {
-                if (Objects[i] is Box prism)
+                if (Objects[i_body] is Polygon polygon)
                 {
-                    if (prism.Hit(ray, out var hit, out var normal))
+                    for (int i_ray = 0; i_ray < beams.Length; i_ray++)
                     {
-                        var t = ray.GetDistanceAlong(hit);
-                        if (t >= 0 && t<distance)
+                        if (polygon.Hit(beams[i_ray], out var hit, out var normal))
                         {
-                            distance = Math.Min(distance, t);
-                            DrawPoint(g, Color.Red, hit, 8, t.ToString("f2"));
-                            DrawRay(g, Color.Red, new Ray(hit, normal), 1f);
-                            DrawRay(g, Color.White, ray.ReflectFrom(hit, normal), ModelSize / 2);
+                            var t = beams[i_ray].GetDistanceAlong(hit);
+                            if (t >= 0 && t < distance[i_ray])
+                            {
+                                distance[i_ray] = Math.Min(distance[i_ray], t);
+                                //DrawRay(g, Color.Yellow, new Ray(hit, normal), 1f);
+                                DrawRay(g, Color.White, beams[i_ray].ReflectFrom(hit, normal), ModelSize / 2);
+                            }
                         }
+
                     }
                 }
-                if (Objects[i] is Circle circle)
+                if (Objects[i_body] is Circle circle)
                 {
-                    if (circle.Hit(ray, out var hit, out var normal))
+                    for (int k = 0; k < beams.Length; k++)
                     {
-                        var t = ray.GetDistanceAlong(hit);
-                        if (t >= 0 && t<distance)
+                        if (circle.Hit(beams[k], out var hit, out var normal))
                         {
-                            distance = Math.Min(distance, t);
-                            DrawPoint(g, Color.Yellow, hit, 8, t.ToString("f2"));
-                            DrawRay(g, Color.Yellow, new Ray(hit, normal), 1f);
-                            DrawRay(g, Color.White, ray.ReflectFrom(hit, normal), ModelSize/2);
+                            var t = ray.GetDistanceAlong(hit);
+                            if (t >= 0 && t < distance[k])
+                            {
+                                distance[k] = Math.Min(distance[k], t);                                
+                                //DrawRay(g, Color.Yellow, new Ray(hit, normal), 1f);
+                                DrawRay(g, Color.White, beams[k].ReflectFrom(hit, normal), ModelSize/2);
+                            }
                         }
                     }
                 }
             }
-            DrawRay(g, Color.White, ray, distance);
+            for (int k = 0; k < beams.Length; k++)
+            {
+                DrawRay(g, Color.White, beams[k], distance[k]);
+            }
             ResetStrokeAndFill();
         }
 
+        #region Draw Primitives
         public void DrawPoint(Graphics g, Color color, Vector2 position, float size = 4f, string label = null, ContentAlignment align = ContentAlignment.TopLeft)
         {
-            var point = GetPoint(position, Scale);
+            var point = GetPixel(position, Scale);
             Fill.Color = color;
             g.FillEllipse(Fill, point.X - size / 2, point.Y - size / 2, size, size);
 
@@ -210,8 +220,8 @@ namespace JA.World
 
         public void DrawSegment(Graphics g, Color color, Segment segment)
         {
-            var pxA = GetPoint(segment.A, Scale);
-            var pxB = GetPoint(segment.B, Scale);
+            var pxA = GetPixel(segment.A, Scale);
+            var pxB = GetPixel(segment.B, Scale);
             Stroke.Color = color;
             Stroke.Width = 1;
             g.DrawLine(Stroke, pxA, pxB);
@@ -224,89 +234,114 @@ namespace JA.World
             if (distance < 0)
             {
                 var view = Target.ClientRectangle;
-                distance = Math.Max(view.Width, view.Height)/Scale;
+                distance = Math.Max(view.Width, view.Height) / Scale;
             }
-            var px_origin = GetPoint(ray.Origin, Scale);
-            var px_end = GetPoint(ray.GetPointAlong(distance), Scale);
+            var px_origin = GetPixel(ray.Origin, Scale);
+            var px_end = GetPixel(ray.GetPointAlong(distance), Scale);
             Fill.Color = color;
-            g.FillEllipse(Fill, px_origin.X - 2, px_origin.Y - 2, 4, 4);
+            g.FillEllipse(Fill, px_origin.X - 1, px_origin.Y - 1, 2, 2);
             Stroke.Color = color;
             Stroke.Width = 1;
-            Stroke.CustomEndCap = new AdjustableArrowCap(3f, 9f);
+            Stroke.CustomEndCap = new AdjustableArrowCap(1.5f, 4.5f);
             g.DrawLine(Stroke, px_origin, px_end);
             Stroke.EndCap = LineCap.NoAnchor;
         }
-
-        internal void DrawPolygon(Graphics g, Object item, Vector2[] nodes)
+        internal void DrawPolygon(Graphics g, Color color, Vector2[] points)
         {
-            nodes = item.FromLocal(nodes);
-            var points = GetPoint(nodes, Scale);
-            var color = item.Color;
-
-            if (IsSelected(item))
-            {
-                color = color.AddH(0.12f);
-            }
-
+            var pixels = GetPixel(points, Scale);
             Fill.Color = color.SetA(0.4f);
-            g.FillPolygon(Fill, points);
+            g.FillPolygon(Fill, pixels);
             Stroke.Color = color;
             Stroke.Width = 2;
-            g.DrawPolygon(Stroke, points);
+            g.DrawPolygon(Stroke, pixels);
+            Stroke.Width = 0;
         }
-        internal void DrawCircle(Graphics g, Object item, float radius)
+        internal void DrawCircle(Graphics g, Color color, Vector2 center, float radius)
         {
-            var center = item.Position;
-            var other = item.FromLocal(radius * Vector2.UnitX);
-            radius = Vector2.Distance(center, other) * Scale;
+            var px_center = GetPixel(center, Scale);
 
-            var px_center = Scene.GetPoint(center, Scale);
-            var px_other = Scene.GetPoint(other, Scale);
-
-            var color = item.Color;
-
-            if (IsSelected(item))
-            {
-                color = color.AddH(0.12f);
-            }
+            radius *= Scale;
             Fill.Color = color.SetA(0.4f);
             g.FillEllipse(Fill, px_center.X - radius, px_center.Y - radius, 2 * radius, 2 * radius);
             Stroke.Color = color;
             Stroke.Width = 2;
             g.DrawEllipse(Stroke, px_center.X - radius, px_center.Y - radius, 2 * radius, 2 * radius);
+        }
+
+        internal void DrawCircle(Graphics g, Color color, Vector2 center, float angle, float radius)
+        {
+            var other = center + Vector2.Transform(radius * Vector2.UnitX, Matrix3x2.CreateRotation(angle));
+            var px_center = GetPixel(center, Scale);
+            var px_other = GetPixel(other, Scale);
+
+            radius *= Scale;
+
+            Fill.Color = color.SetA(0.4f);
+            Stroke.Color = color;
+            Stroke.Width = 2;
+
+            g.FillEllipse(Fill, px_center.X - radius, px_center.Y - radius, 2 * radius, 2 * radius);
+            g.DrawEllipse(Stroke, px_center.X - radius, px_center.Y - radius, 2 * radius, 2 * radius);
             g.DrawLine(Stroke, px_center, px_other);
         }
 
-        public static PointF GetPoint(Vector2 position, float scale)
+        public void DrawEllipse(Graphics g, Color color, Vector2 center, float angle, float majorAxis, float minorAxis)
+        {
+            var other = center + Vector2.Transform(majorAxis * Vector2.UnitX, Matrix3x2.CreateRotation(angle));
+            var px_center = GetPixel(center, Scale);
+            var px_other = GetPixel(other, Scale);
+
+            majorAxis *= Scale;
+            minorAxis *= Scale;
+
+            Fill.Color = color.SetA(0.4f);
+            Stroke.Color = color;
+            Stroke.Width = 2;
+
+            var state = g.Save();
+            g.TranslateTransform(px_center.X, px_center.Y);
+            g.RotateTransform(-(float)(angle * 180 / Math.PI));
+            g.FillEllipse(Fill, - majorAxis, - minorAxis, 2 * majorAxis, 2 * minorAxis);
+            g.DrawEllipse(Stroke, - majorAxis, - minorAxis, 2 * majorAxis, 2 * minorAxis);
+            g.Restore(state);
+            g.DrawLine(Stroke, px_center, px_other);
+        } 
+
+        #endregion
+
+        #region Viewport
+        public static PointF GetPixel(Vector2 position, float scale)
         {
             return new PointF(position.X * scale, -position.Y * scale);
         }
-        public static PointF[] GetPoint(Vector2[] nodes, float scale)
+        public static PointF[] GetPixel(Vector2[] nodes, float scale)
         {
             PointF[] points = new PointF[nodes.Length];
             for (int i = 0; i < points.Length; i++)
             {
-                points[i] = GetPoint(nodes[i], scale);
+                points[i] = GetPixel(nodes[i], scale);
             }
             return points;
         }
-        public static Vector2 GetPosition(PointF point, float scale)
+        public static Vector2 GetPoint(PointF pixel, float scale)
         {
-            return new Vector2(point.X / scale, -point.Y / scale);
+            return new Vector2(pixel.X / scale, -pixel.Y / scale);
         }
-        public static Vector2[] GetPosition(PointF[] points, float scale)
+        public static Vector2[] GetPoint(PointF[] pixel, float scale)
         {
-            Vector2[] positions = new Vector2[points.Length];
+            Vector2[] positions = new Vector2[pixel.Length];
             for (int i = 0; i < positions.Length; i++)
             {
-                positions[i] = GetPosition(points[i], scale);
+                positions[i] = GetPoint(pixel[i], scale);
             }
             return positions;
         }
+        #endregion
 
+        #region Mouse Events
         internal void MouseDown(Point location, MouseButtons button)
         {
-            dragFrom = GetPosition(location, Scale);
+            dragFrom = GetPoint(location, Scale);
             mousePos = dragFrom;
 
             if (button == MouseButtons.Left || button == MouseButtons.Right)
@@ -341,12 +376,12 @@ namespace JA.World
 
         internal void MouseMove(Point location, MouseButtons button)
         {
-            mousePos = GetPosition(location, Scale);
+            mousePos = GetPoint(location, Scale);
             if (selection >= 0)
             {
                 if (button == MouseButtons.Left)
                 {
-                    var dragTo = GetPosition(location, Scale);
+                    var dragTo = GetPoint(location, Scale);
 
                     Objects[selection].Position = startPos + (dragTo - dragFrom);
 
@@ -354,7 +389,7 @@ namespace JA.World
                 }
                 else if (button == MouseButtons.Right)
                 {
-                    var dragTo = GetPosition(location, Scale);
+                    var dragTo = GetPoint(location, Scale);
                     var cen = Objects[selection].Position;
                     var angle1 = Math.Atan2(dragFrom.Y - cen.Y, dragFrom.X - cen.X);
                     var angle2 = Math.Atan2(dragTo.Y - cen.Y, dragTo.X - cen.X);
@@ -363,7 +398,8 @@ namespace JA.World
                 }
             }
             Target.Invalidate();
-        }
+        } 
+        #endregion
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
