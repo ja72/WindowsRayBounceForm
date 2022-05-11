@@ -11,6 +11,7 @@ using System.Windows.Forms;
 namespace JA.World
 {
     using JA.Gdi;
+    using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 
     public class Scene : IDisposable
     {
@@ -105,58 +106,43 @@ namespace JA.World
             Vector2 dir = Vector2.Transform(Vector2.UnitX, Matrix3x2.CreateRotation(rayAngle));
             ray = new Ray(mousePos, dir);
 
-            Ray[] beams = new Ray[17];
-            float[] distance = new float[beams.Length];
-            float width = 1.0f;
-            for (int i = 0; i < beams.Length; i++)
+            var beams = new Beam(ray, 17, 1.2f);
+
+            foreach (var beam in beams.GetRays())
             {
-                beams[i] = ray.Parallel(width * (i / (beams.Length - 1f) - 0.5f));
-                distance[i] = ModelSize / 2;
-            }
+                float distance = ModelSize;
+                Vector2 p = Vector2.Zero, n = Vector2.Zero;
+                Object target = null;
 
-            //float distance = ModelSize / 2;
-
-
-            for (int i_body = 0; i_body < Objects.Count; i_body++)
-            {
-                if (Objects[i_body] is Polygon polygon)
+                foreach (var item in Objects)
                 {
-                    for (int i_ray = 0; i_ray < beams.Length; i_ray++)
+                    if (item.Hit(beam, out var hit, out var normal))
                     {
-                        if (polygon.Hit(beams[i_ray], out var hit, out var normal))
+                        var t = beam.GetDistanceAlong(hit);
+                        if (t >= 0 && t < distance)
                         {
-                            var t = beams[i_ray].GetDistanceAlong(hit);
-                            if (t >= 0 && t < distance[i_ray])
-                            {
-                                distance[i_ray] = Math.Min(distance[i_ray], t);
-                                //DrawRay(g, Color.Yellow, new Ray(hit, normal), 1f);
-                                DrawRay(g, Color.White, beams[i_ray].ReflectFrom(hit, normal), ModelSize / 2);
-                            }
-                        }
-
-                    }
-                }
-                if (Objects[i_body] is Circle circle)
-                {
-                    for (int k = 0; k < beams.Length; k++)
-                    {
-                        if (circle.Hit(beams[k], out var hit, out var normal))
-                        {
-                            var t = ray.GetDistanceAlong(hit);
-                            if (t >= 0 && t < distance[k])
-                            {
-                                distance[k] = Math.Min(distance[k], t);                                
-                                //DrawRay(g, Color.Yellow, new Ray(hit, normal), 1f);
-                                DrawRay(g, Color.White, beams[k].ReflectFrom(hit, normal), ModelSize/2);
-                            }
+                            distance = Math.Min(distance, t);
+                            p = hit;
+                            n = normal;
+                            target = item;
                         }
                     }
                 }
+                DrawRay(g, Color.Ivory.SetA(0.9f), beam, distance);
+                if (target != null)
+                {
+                    //DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f), new Ray(p, n), 0.5f);
+                    if (beam.CanReflectFrom(p, n, out var reflect))
+                    {
+                        DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f).SetA(0.8f), reflect, ModelSize / 2);
+                    }
+                    if (beam.CanRefractFrom(p, n, 1.3f, out var refract))
+                    {
+                        DrawRay(g, target.Color.Blend(Color.DarkSlateGray, 0.6f).SetA(0.8f), refract, ModelSize / 2);
+                    }
+                }
             }
-            for (int k = 0; k < beams.Length; k++)
-            {
-                DrawRay(g, Color.White, beams[k], distance[k]);
-            }
+
             ResetStrokeAndFill();
         }
 
@@ -301,11 +287,11 @@ namespace JA.World
             var state = g.Save();
             g.TranslateTransform(px_center.X, px_center.Y);
             g.RotateTransform(-(float)(angle * 180 / Math.PI));
-            g.FillEllipse(Fill, - majorAxis, - minorAxis, 2 * majorAxis, 2 * minorAxis);
-            g.DrawEllipse(Stroke, - majorAxis, - minorAxis, 2 * majorAxis, 2 * minorAxis);
+            g.FillEllipse(Fill, -majorAxis, -minorAxis, 2 * majorAxis, 2 * minorAxis);
+            g.DrawEllipse(Stroke, -majorAxis, -minorAxis, 2 * majorAxis, 2 * minorAxis);
             g.Restore(state);
             g.DrawLine(Stroke, px_center, px_other);
-        } 
+        }
 
         #endregion
 
@@ -398,7 +384,7 @@ namespace JA.World
                 }
             }
             Target.Invalidate();
-        } 
+        }
         #endregion
 
         #region IDisposable Support
@@ -413,7 +399,7 @@ namespace JA.World
                     Fill.Dispose();
                     Stroke.Dispose();
                     TextFont.Dispose();
-                }                
+                }
                 disposedValue = true;
             }
         }

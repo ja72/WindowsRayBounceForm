@@ -43,5 +43,17 @@ namespace JA.Gdi
             hsl = new ColorHsl(hsl.A, hsl.H + h * 360, hsl.S, hsl.L);
             return hsl.ToColor();
         }
+
+        public static Color Blend(this Color color, Color target, float amount)
+        {
+            var src = ColorHsl.FromColor(color);
+            var dst = ColorHsl.FromColor(target);
+
+            return new ColorHsl(
+                src.A + (dst.A - src.A) * amount,
+                src.H + (dst.H - src.H) * amount,
+                src.S + (dst.S - src.S) * amount,
+                src.L + (dst.L - src.L) * amount).ToColor();
+        }
     }
 }

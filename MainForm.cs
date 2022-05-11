@@ -37,14 +37,14 @@ namespace JA
         {
             base.OnLoad(e);
 
-            scene.Add(new Box(Color.Red, -2*Vector2.UnitX, 0, 1f, 1f));
+            scene.Add(new Box(Color.Red, 2*Vector2.UnitX - 3f*Vector2.UnitY, 0, 1f, 1f));
 
-            scene.Add(new Triangle(Color.Blue, 2*Vector2.UnitY, 0,
+            scene.Add(new Triangle(Color.Blue, 2*Vector2.UnitX - 1f * Vector2.UnitY, 0,
                 new Vector2(-1f, -0.5f),
                 new Vector2(1f, -0.5f),
                 new Vector2(0f, 1f)));
 
-            scene.Add(new Polygon(Color.Green, -2*Vector2.UnitY, 0,
+            scene.Add(new Polygon(Color.Green, 2*Vector2.UnitX + 1f * Vector2.UnitY, 0,
                 new Vector2(-1f, 0f),
                 new Vector2(-0.5f, -0.5f),
                 new Vector2(0.5f, -0.5f),
@@ -52,9 +52,9 @@ namespace JA
                 new Vector2(0f, 1f),
                 new Vector2(-1f, 0f)));
 
-            scene.Add(new Circle(Color.Yellow, 2*Vector2.UnitX, 0, 0.75f));
+            scene.Add(new Circle(Color.Yellow, 2*Vector2.UnitX +3f * Vector2.UnitY, 0, 0.75f));
 
-            scene.Add(new Ellipse(Color.Cyan, -2 * Vector2.UnitX - 2 * Vector2.UnitY,15*deg, 0.75f, 0.25f));
+            scene.Add(new Ellipse(Color.Cyan, -2 * Vector2.UnitX,15*deg, 1.75f, 0.25f));
             
             sw.Start();
             timer.Tick += (s, ev) => { scene.Update((float)sw.Elapsed.TotalSeconds); sw.Restart(); };

@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace JA.World
 {
+    using static JA.Utils;
+
     public readonly struct Ray : IEquatable<Ray>
     {
         public Ray(Vector2 origin, Vector2 direction)
@@ -15,7 +17,7 @@ namespace JA.World
             Origin = origin;
             Direction = Vector2.Normalize(direction);
         }
-
+        public static readonly Ray Default = new Ray(Vector2.Zero, Vector2.Zero);
 
         #region IEquatable Members
 
@@ -77,9 +79,26 @@ namespace JA.World
         public bool Contains(Vector2 point, float tolerance = 1e-6f)
             => Math.Abs(Direction.Cross(point - Origin)) <= tolerance;
 
-        public Ray ReflectFrom(Vector2 point, Vector2 normal)
+        public bool CanReflectFrom(Vector2 point, Vector2 normal, out Ray result)
         {
-            return new Ray(point, Vector2.Reflect(Direction, normal));
+            result = new Ray(point, Vector2.Reflect(Direction, normal));
+            return true;
+        }
+        public bool CanRefractFrom(Vector2 point, Vector2 normal, float coef, out Ray result)
+        {
+            //normal = Vector2.Negate(normal);
+            coef = 1 / coef;
+            var ni = Vector2.Dot(Direction, normal);
+            var np = Direction - ni * normal;
+            float d = 1 - coef * coef * (1 - ni * ni);
+            if (d >= 0)
+            {
+                float f = Sqrt(d);
+                result = new Ray(point, -f * normal + coef * np);
+                return true;
+            }
+            result = Ray.Default;
+            return false;
         }
 
         public bool IntersectDistance(Ray ray, out float distance)
