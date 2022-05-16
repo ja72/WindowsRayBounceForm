@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JA.World
+namespace JA.Geometry
 {
     using static JA.Utils;
 

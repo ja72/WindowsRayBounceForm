@@ -5,10 +5,11 @@ using System;
 namespace JA.World
 {
     using JA.Gdi;
+    using JA.Geometry;
 
-    public class Polygon : Object
+    public class PolygonGraphics : GraphicsObject
     {
-        public Polygon(Color color, Vector2 position, float angle, params Vector2[] nodes)
+        public PolygonGraphics(Color color, Vector2 position, float angle, params Vector2[] nodes)
             : base(color, position, angle)
         {
             Nodes = nodes;
@@ -183,7 +184,7 @@ namespace JA.World
 
         #region Drawing
 
-        public override void Draw(Graphics g, Scene scene)
+        public override void Draw(Graphics g, GraphicsScene scene)
         {
             var color = scene.IsSelected(this) ? Color.AddH(0.12f) : Color;
             scene.DrawPolygon(g, color, GetNodes(false));

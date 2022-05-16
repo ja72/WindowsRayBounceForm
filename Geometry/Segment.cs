@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JA.World
+namespace JA.Geometry
 {
     public readonly struct Segment : IEquatable<Segment>
     {

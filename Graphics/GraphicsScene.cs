@@ -11,23 +11,24 @@ using System.Windows.Forms;
 namespace JA.World
 {
     using JA.Gdi;
-    using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
+    using JA.Geometry;
 
-    public class Scene : IDisposable
+    public class GraphicsScene : IDisposable
     {
 
-        public Scene(Control target, float modelSize)
+        public GraphicsScene(Control target, float modelSize)
         {
             Stroke = new Pen(Color.White, 0);
             Fill = new SolidBrush(Color.Black);
             TextFont = new Font(SystemFonts.CaptionFont, FontStyle.Regular);
             Target = target;
             ModelSize = modelSize;
-            Objects = new List<Object>();
+            Objects = new List<GraphicsObject>();
 
             Scale = 1;
             dragFrom = Vector2.Zero;
             selection = -1;
+            Running = true;
 
             target.Paint += (s, ev) => Draw(ev.Graphics);
             target.Resize += (s, ev) => target.Invalidate();
@@ -52,34 +53,48 @@ namespace JA.World
                     ev.Location.Y - Target.ClientRectangle.Top - Target.ClientRectangle.Height / 2);
                 MouseMove(point, ev.Button);
             };
+            target.FindForm().KeyDown += (s, ev) =>
+            {
+                if (ev.KeyCode == Keys.Space)
+                {
+                    Running = !Running;
+                }
+                if (ev.KeyCode == Keys.Escape)
+                {
+                    target.FindForm().Close();
+                }
+            };
         }
 
         public void Update(float elapsedSeconds)
         {
-            for (int i = 0; i < Objects.Count; i++)
+            if (Running)
             {
-                Objects[i].Angle += (float)(Math.PI / 144);
+                for (int i = 0; i < Objects.Count; i++)
+                {
+                    Objects[i].Angle += (float)(Math.PI / 144);
+                }
             }
             Target.Invalidate();
         }
 
         public Control Target { get; }
         public float ModelSize { get; set; }
-        public List<Object> Objects { get; }
+        public List<GraphicsObject> Objects { get; }
         public SolidBrush Fill { get; private set; }
         public Pen Stroke { get; private set; }
         public Font TextFont { get; private set; }
         public float Scale { get; private set; }
+        public bool Running { get; set; }
 
         Vector2 dragFrom, mousePos;
         int selection;
         Vector2 startPos;
         float startAngle;
-        Ray ray;
         float rayAngle = 0;
 
-        public void Add(Object item) => Objects.Add(item);
-        public bool IsSelected(Object item) => selection >= 0 ? Objects[selection] == item : false;
+        public void Add(GraphicsObject item) => Objects.Add(item);
+        public bool IsSelected(GraphicsObject item) => selection >= 0 ? Objects[selection] == item : false;
         public void ResetStrokeAndFill()
         {
             Stroke.Color = Color.White;
@@ -104,21 +119,22 @@ namespace JA.World
             ResetStrokeAndFill();
 
             Vector2 dir = Vector2.Transform(Vector2.UnitX, Matrix3x2.CreateRotation(rayAngle));
-            ray = new Ray(mousePos, dir);
+            var cray = new Ray(mousePos, dir);
 
-            var beams = new Beam(ray, 17, 1.2f);
+            //var beam = new ParallelRays(cray, 17, 1.2f);
+            var beam = new RadialRays(cray, 72);            
 
-            foreach (var beam in beams.GetRays())
+            foreach (var ray in beam.GetRays())
             {
                 float distance = ModelSize;
                 Vector2 p = Vector2.Zero, n = Vector2.Zero;
-                Object target = null;
+                GraphicsObject target = null;
 
                 foreach (var item in Objects)
                 {
-                    if (item.Hit(beam, out var hit, out var normal))
+                    if (item.Hit(ray, out var hit, out var normal))
                     {
-                        var t = beam.GetDistanceAlong(hit);
+                        var t = ray.GetDistanceAlong(hit);
                         if (t >= 0 && t < distance)
                         {
                             distance = Math.Min(distance, t);
@@ -128,15 +144,15 @@ namespace JA.World
                         }
                     }
                 }
-                DrawRay(g, Color.Ivory.SetA(0.9f), beam, distance);
+                DrawRay(g, Color.Ivory.SetA(0.9f), ray, distance);
                 if (target != null)
                 {
                     //DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f), new Ray(p, n), 0.5f);
-                    if (beam.CanReflectFrom(p, n, out var reflect))
+                    if (ray.CanReflectFrom(p, n, out var reflect))
                     {
                         DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f).SetA(0.8f), reflect, ModelSize / 2);
                     }
-                    if (beam.CanRefractFrom(p, n, 1.3f, out var refract))
+                    if (ray.CanRefractFrom(p, n, 1.3f, out var refract))
                     {
                         DrawRay(g, target.Color.Blend(Color.DarkSlateGray, 0.6f).SetA(0.8f), refract, ModelSize / 2);
                     }

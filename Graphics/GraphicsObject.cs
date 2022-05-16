@@ -4,14 +4,14 @@ using System.Numerics;
 namespace JA.World
 {
     using JA.Gdi;
-
-    public abstract class Object
+    using JA.Geometry;
+    public abstract class GraphicsObject
     {
-        protected Object(Color color)
+        protected GraphicsObject(Color color)
             : this(color, Vector2.Zero, 0)
         {
         }
-        protected Object(Color color, Vector2 position, float angle)
+        protected GraphicsObject(Color color, Vector2 position, float angle)
         {
             Color = color;
             Position = position;
@@ -25,7 +25,7 @@ namespace JA.World
         public abstract bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true);
         public abstract Vector2 GetClosestPointTo(Vector2 point);
         public abstract bool Contains(Vector2 point);
-        public abstract void Draw(Graphics g, Scene scene);
+        public abstract void Draw(Graphics g, GraphicsScene scene);
 
         #region Transformations
         public Vector2 FromLocal(Vector2 node)

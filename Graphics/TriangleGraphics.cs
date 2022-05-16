@@ -5,10 +5,11 @@ using System.Numerics;
 namespace JA.World
 {
     using JA.Gdi;
+    using JA.Geometry;
 
-    public class Triangle : Polygon
+    public class TriangleGraphics : PolygonGraphics
     {
-        public Triangle(Color color, Vector2 position, float angle, Vector2 a, Vector2 b, Vector2 c)
+        public TriangleGraphics(Color color, Vector2 position, float angle, Vector2 a, Vector2 b, Vector2 c)
             : base(color, position,angle, a,b, c)
         { }
 

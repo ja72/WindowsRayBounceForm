@@ -5,10 +5,11 @@ using System.Numerics;
 namespace JA.World
 {
     using JA.Gdi;
+    using JA.Geometry;
 
-    public class Box : Polygon
+    public class BoxGraphics : PolygonGraphics
     {
-        public Box(Color color, Vector2 position, float angle, float width, float height)
+        public BoxGraphics(Color color, Vector2 position, float angle, float width, float height)
             : base(color, position, angle,
                     new Vector2(-width / 2, -height / 2),
                     new Vector2(+width / 2, -height / 2),
@@ -24,6 +25,13 @@ namespace JA.World
 
 
         #region Interactions
+        public override bool Contains(Vector2 point)
+        {
+            var local = ToLocal(point);
+
+            return local.X >= -Width / 2 && local.X <= Width / 2
+                && local.Y >= -Height / 2 && local.Y <= Height / 2;
+        }
         public override bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true)
         {
             var localRay = ToLocal(ray);
@@ -65,13 +73,6 @@ namespace JA.World
             return true;
         }
 
-        public override bool Contains(Vector2 point)
-        {
-            var local = ToLocal(point);
-
-            return local.X >= -Width / 2 && local.X <= Width / 2
-                && local.Y >= -Height / 2 && local.Y <= Height / 2;
-        }
         #endregion
 
     }
