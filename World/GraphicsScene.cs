@@ -142,7 +142,7 @@ namespace JA.World
             Vector2 dir = Vector2.Transform(Vector2.UnitX, Matrix3x2.CreateRotation(rayAngle));
             var cray = new Ray(mousePos, dir);
 
-            var beam = new ParallelRays(Color.Wheat, cray, 1, 1.2f);
+            var beam = new ParallelRays(Color.Wheat, cray, 12, 0.4f);
             //var beam = new RadialRays(Color.Wheat, cray, 72);
             var list = beam.GetGraphicsRays(ModelSize).ToList();
             int bounce = 0;
