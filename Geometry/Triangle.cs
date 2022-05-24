@@ -10,6 +10,8 @@ namespace JA.Geometry
     public readonly struct Triangle : IShape, IEquatable<Triangle>
     {
         readonly (Vector2 a, Vector2 b, Vector2 c) data;
+        public Triangle(Vector2 a, Vector2 b, Vector2 c)
+            : this(Vector2.Zero, Vector2.Zero, a, b, c) { }
         public Triangle(Vector2 center, Vector2 direction, Vector2 a, Vector2 b, Vector2 c)
         {
             Center = center;
@@ -28,7 +30,7 @@ namespace JA.Geometry
         public Segment[] GetSegments()
             => new Segment[] { new Segment(A, B), new Segment(B, C), new Segment(C, A) };
 
-        public Polygon GetPolygon() 
+        public Polygon ToPolygon() 
             => new Polygon(Center, Direction, new Vector2[] { A, B, C });
 
         public float GetArea()
@@ -81,11 +83,11 @@ namespace JA.Geometry
 
         public Vector2 GetClosestPointTo(Vector2 point)
         {
-            return GetPolygon().GetClosestPointTo(point);
+            return ToPolygon().GetClosestPointTo(point);
         }
         public bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true)
         {
-            return GetPolygon().Hit(ray, out hit, out normal, nearest);
+            return ToPolygon().Hit(ray, out hit, out normal, nearest);
         }
 
         #endregion

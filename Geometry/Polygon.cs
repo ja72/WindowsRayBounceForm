@@ -9,6 +9,8 @@ namespace JA.Geometry
 {
     public readonly struct Polygon : IShape, IEquatable<Polygon>
     {
+        public Polygon(Vector2[] nodes)
+            : this(Vector2.Zero, Vector2.Zero, nodes) { }
         public Polygon(Vector2 center, Vector2 direction, Vector2[] nodes)
         {
             Center = center;
@@ -16,11 +18,26 @@ namespace JA.Geometry
             Nodes = nodes;
         }
 
+        public Polygon ScaleNodes(float factor)
+            => new Polygon(Center, Direction, Nodes.Select((n) => factor * n).ToArray());
+        public Polygon MoveNodes(Vector2 delta)
+            => new Polygon(Center, Direction, Nodes.Select((n) => delta + n).ToArray());
+        public Polygon RotateNodes(float angle)
+            => new Polygon(Center, Direction, Nodes.Select((n) => Vector2.Transform(n, Matrix3x2.CreateRotation(angle))).ToArray());
+        public Polygon RotateNodes(float angle, Vector2 localPivot)
+            => new Polygon(Center, Direction, Nodes.Select((n) => Vector2.Transform(n, Matrix3x2.CreateRotation(angle, localPivot))).ToArray());
+
         #region Properties
         public Vector2[] Nodes { get; }
         public Vector2 Center { get; }
         public Vector2 Direction { get; }
         public float Angle { get => (float)Math.Atan2(Direction.Y, Direction.X); }
+
+        public Vector2[] GetNodes()
+        {
+            IObject obj = this;
+            return Nodes.Select((v) => Transformations.FromLocal(obj, v)).ToArray();
+        }
 
         public Segment[] GetSegments()
         {
@@ -193,15 +210,20 @@ namespace JA.Geometry
                 return false;
             }
 
-            // select near (default) or far point
-            var t = nearest ? t_near : t_far;
+            if (t_near < 0 && t_far < 0)
+            {
+                hit = ray.Origin;
+                return false;
+            }
+            // select nearest of both postive, otherwise pick far (which should be +)
+            var t = t_near >= 0 && t_far >= 0 ? nearest ? t_near : t_far : t_far;
             hit = ray.GetPointAlong(t);
-
             for (int i = 0; i < t_seg.Length; i++)
             {
                 if (t == t_seg[i])
                 {
-                    normal = -segments[i].Normal;
+                    var sign = Math.Sign(Vector2.Dot(ray.Direction, segments[i].Normal));
+                    normal = -sign * segments[i].Normal;
                 }
             }
             return true;

@@ -5,6 +5,8 @@ namespace JA.World
 {
     using JA.Gdi;
     using JA.Geometry;
+    using System;
+
     public abstract class GraphicsObject
     {
         protected GraphicsObject(Color color)
@@ -26,6 +28,34 @@ namespace JA.World
         public abstract Vector2 GetClosestPointTo(Vector2 point);
         public abstract bool Contains(Vector2 point);
         public abstract void Draw(Graphics g, GraphicsScene scene);
+
+        public void DrawShape(Graphics g, GraphicsScene scene, IShape shape, Color color)
+        {
+            if (shape is Box box)
+            {
+                shape = box.ToPolygon();
+            }
+            if (shape is Triangle triangle)
+            {
+                shape = triangle.ToPolygon();
+            }
+            if (shape is Polygon polygon)
+            {
+                scene.DrawPolygon(g, color, FromLocal(polygon.GetNodes()));
+                return;
+            }
+            if (shape is Circle circle)
+            {
+                scene.DrawCircle(g, color, FromLocal(circle.Center), Angle + circle.Angle, circle.Radius);
+                return;
+            }
+            if (shape is Ellipse ellipse)
+            {
+                scene.DrawEllipse(g, color, FromLocal(ellipse.Center), Angle + ellipse.Angle, ellipse.MajorAxis, ellipse.MinorAxis);
+                return;
+            }
+            throw new NotSupportedException($"{shape.GetType().Name} is not supported.");
+        }
 
         #region Transformations
         public Vector2 FromLocal(Vector2 node)
@@ -83,7 +113,8 @@ namespace JA.World
         public Ray FromLocal(Ray ray) => new Ray(FromLocal(ray.Origin), FromLocalDirection(ray.Direction));
         public Ray ToLocal(Ray ray) => new Ray(ToLocal(ray.Origin), ToLocalDirection(ray.Direction));
         public Segment FromLocal(Segment segment) => new Segment(FromLocal(segment.A), FromLocal(segment.B));
-        public Segment ToLocal(Segment segment) => new Segment(ToLocal(segment.A), ToLocal(segment.B)); 
+        public Segment ToLocal(Segment segment) => new Segment(ToLocal(segment.A), ToLocal(segment.B));
         #endregion
+
     }
 }

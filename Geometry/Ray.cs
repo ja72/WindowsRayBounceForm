@@ -70,7 +70,7 @@ namespace JA.Geometry
 
         public Ray Flip() => new Ray(Origin, -Direction);
         public Ray Parallel(float distance) => new Ray(Origin + Direction.Orthogonal() * distance, Direction);
-
+        public Ray Rotate(float angle) => new Ray(Origin, Vector2.TransformNormal(Direction, Matrix3x2.CreateRotation(angle)));
         public Vector2 GetPointAlong(float distance) => Origin + distance * Direction;
 
         public float GetDistanceAlong(Vector2 point)

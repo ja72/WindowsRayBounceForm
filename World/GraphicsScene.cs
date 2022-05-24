@@ -28,7 +28,7 @@ namespace JA.World
             Scale = 1;
             dragFrom = Vector2.Zero;
             selection = -1;
-            Running = true;
+            Running = false;
 
             target.Paint += (s, ev) => Draw(ev.Graphics);
             target.Resize += (s, ev) => target.Invalidate();
@@ -94,6 +94,20 @@ namespace JA.World
         float rayAngle = 0;
 
         public void Add(GraphicsObject item) => Objects.Add(item);
+
+        public GraphicsObject AddShape(Color color, Vector2 position, float angle, IShape shape)
+        {
+            var obj = new ShapeObject(color, position, angle, shape);
+            Objects.Add(obj);
+            return obj;
+        }
+        public GraphicsObject AddShapes(Color color, Vector2 position, float angle, params IShape[] shapes)
+        {
+            var obj = new MultiShapeObject(color, position, angle, shapes);
+            Objects.Add(obj);
+            return obj;
+        }
+
         public bool IsSelected(GraphicsObject item) => selection >= 0 ? Objects[selection] == item : false;
         public void ResetStrokeAndFill()
         {
@@ -102,6 +116,7 @@ namespace JA.World
             Stroke.EndCap = LineCap.NoAnchor;
             Stroke.StartCap = LineCap.NoAnchor;
             Stroke.DashStyle = DashStyle.Solid;
+            Stroke.DashCap = DashCap.Round;
             Fill.Color = Color.Black;
         }
         public void Draw(Graphics g)
@@ -115,50 +130,67 @@ namespace JA.World
             for (int i = 0; i < Objects.Count; i++)
             {
                 Objects[i].Draw(g, this);
+
+                if (selection == i)
+                {
+                    DrawCross(g, Color.White, Objects[i].Position);
+                }
             }
+
             ResetStrokeAndFill();
 
             Vector2 dir = Vector2.Transform(Vector2.UnitX, Matrix3x2.CreateRotation(rayAngle));
             var cray = new Ray(mousePos, dir);
 
-            //var beam = new ParallelRays(cray, 17, 1.2f);
-            var beam = new RadialRays(cray, 72);            
-
-            foreach (var ray in beam.GetRays())
+            var beam = new ParallelRays(Color.Wheat, cray, 1, 1.2f);
+            //var beam = new RadialRays(Color.Wheat, cray, 72);
+            var list = beam.GetGraphicsRays(ModelSize).ToList();
+            int bounce = 0;
+            while (list.Count > 0 && bounce <= 6)
             {
-                float distance = ModelSize;
-                Vector2 p = Vector2.Zero, n = Vector2.Zero;
-                GraphicsObject target = null;
-
-                foreach (var item in Objects)
+                bounce++;
+                foreach (var graphRay in list.ToArray())
                 {
-                    if (item.Hit(ray, out var hit, out var normal))
+                    var ray = graphRay.Ray;
+                    float distance = ModelSize;
+                    Vector2 p = Vector2.Zero, n = Vector2.Zero;
+                    GraphicsObject target = null;
+
+                    foreach (var obj in Objects)
                     {
-                        var t = ray.GetDistanceAlong(hit);
-                        if (t >= 0 && t < distance)
+                        if (obj.Hit(ray, out var hit, out var normal))
                         {
-                            distance = Math.Min(distance, t);
-                            p = hit;
-                            n = normal;
-                            target = item;
+                            var t = ray.GetDistanceAlong(hit);
+                            if (t >= 1e-6f && t < distance)
+                            {
+                                distance = Math.Min(distance, t);
+                                graphRay.Distance = distance;
+                                p = hit;
+                                n = normal;
+                                target = obj;
+                                //DrawRay(g, Color.Yellow, new Ray(p, n), 1);
+                            }
+                        }
+                    }
+                    graphRay.Draw(g, this);
+                    list.Remove(graphRay);
+                    if (target != null)
+                    {
+                        if (ray.CanReflectFrom(p, n, out var reflect))
+                        {
+                            var newRay = new GraphicsRay(reflect, target.Color.Blend(beam.Color, 0.2f).SetA(0.6f), ModelSize / 2);
+                            list.Add(newRay);
+                            //newRay.Draw(g, this);
+                        }
+                        if (ray.CanRefractFrom(p, n, 1.3f, out var refract))
+                        {
+                            var newRay = new GraphicsRay(refract, target.Color.Blend(beam.Color, 0.6f).SetA(0.6f), ModelSize / 2);
+                            list.Add(newRay);
+                            //newRay.Draw(g, this);
                         }
                     }
                 }
-                DrawRay(g, Color.Ivory.SetA(0.9f), ray, distance);
-                if (target != null)
-                {
-                    //DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f), new Ray(p, n), 0.5f);
-                    if (ray.CanReflectFrom(p, n, out var reflect))
-                    {
-                        DrawRay(g, target.Color.Blend(Color.Ivory, 0.2f).SetA(0.8f), reflect, ModelSize / 2);
-                    }
-                    if (ray.CanRefractFrom(p, n, 1.3f, out var refract))
-                    {
-                        DrawRay(g, target.Color.Blend(Color.DarkSlateGray, 0.6f).SetA(0.8f), refract, ModelSize / 2);
-                    }
-                }
             }
-
             ResetStrokeAndFill();
         }
 
@@ -218,6 +250,19 @@ namespace JA.World
                 }
                 g.DrawString(label, SystemFonts.CaptionFont, Fill, px, py);
             }
+        }
+
+        public void DrawCross(Graphics g, Color color, Vector2 center, float size = 16)
+        {
+            var px_center = GetPixel(center, Scale);
+            Stroke.Color = color;
+            Stroke.DashStyle = DashStyle.DashDot;
+            Stroke.DashCap = DashCap.Flat;
+            Stroke.Width = 1;
+            g.DrawLine(Stroke, px_center.X, px_center.Y - size / 2, px_center.X, px_center.Y + size / 2);
+            g.DrawLine(Stroke, px_center.X - size / 2, px_center.Y, px_center.X + size / 2, px_center.Y);
+            Stroke.DashStyle = DashStyle.Solid;
+            Stroke.Width = 0;
         }
 
         public void DrawSegment(Graphics g, Color color, Segment segment)

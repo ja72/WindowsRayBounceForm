@@ -3,11 +3,14 @@ using System.Numerics;
 
 namespace JA.Geometry
 {
-    public interface IShape
+    public interface IObject
     {
         Vector2 Center { get; }
         Vector2 Direction { get; }
         float Angle { get; }
+    }
+    public interface IShape : IObject
+    {
         float GetArea();
         Vector2 GetCentroid();
         Vector2 GetStartPoint();
@@ -18,24 +21,24 @@ namespace JA.Geometry
 
     public static class Transformations
     {
-        public static Vector2 FromLocal(this IShape shape, Vector2 node)
+        public static Vector2 FromLocal(this IObject obj, Vector2 node)
 {
-            return shape.Center + Vector2.Transform(node, Matrix3x2.CreateRotation(shape.Angle));
+            return obj.Center + Vector2.Transform(node, Matrix3x2.CreateRotation(obj.Angle));
         }
-        public static Vector2 ToLocal(this IShape shape, Vector2 position)
+        public static Vector2 ToLocal(this IObject obj, Vector2 position)
 {
-            return Vector2.Transform(position - shape.Center, Matrix3x2.CreateRotation(-shape.Angle));
+            return Vector2.Transform(position - obj.Center, Matrix3x2.CreateRotation(-obj.Angle));
         }
-        public static Vector2 FromLocalDirection(this IShape shape, Vector2 node)
+        public static Vector2 FromLocalDirection(this IObject obj, Vector2 node)
         {
-            return Vector2.Transform(node, Matrix3x2.CreateRotation(shape.Angle));
+            return Vector2.Transform(node, Matrix3x2.CreateRotation(obj.Angle));
         }
-        public static Vector2 ToLocalDirection(this IShape shape, Vector2 vector)
+        public static Vector2 ToLocalDirection(this IObject obj, Vector2 vector)
         {
-            return Vector2.Transform(vector, Matrix3x2.CreateRotation(-shape.Angle));
+            return Vector2.Transform(vector, Matrix3x2.CreateRotation(-obj.Angle));
 }
-        public static Ray FromLocal(this IShape shape, Ray ray) => new Ray(shape.FromLocal(ray.Origin), shape.FromLocalDirection(ray.Direction));
-        public static Ray ToLocal(this IShape shape, Ray ray) => new Ray(shape.ToLocal(ray.Origin), shape.ToLocalDirection(ray.Direction));
+        public static Ray FromLocal(this IObject obj, Ray ray) => new Ray(obj.FromLocal(ray.Origin), obj.FromLocalDirection(ray.Direction));
+        public static Ray ToLocal(this IObject obj, Ray ray) => new Ray(obj.ToLocal(ray.Origin), obj.ToLocalDirection(ray.Direction));
 
     }
 }

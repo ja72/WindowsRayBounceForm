@@ -11,6 +11,8 @@ namespace JA.Geometry
 
     public readonly struct Ellipse : IShape
     {
+        public Ellipse(float majorAxis, float minorAxis)
+            : this(Vector2.Zero, Vector2.Zero, majorAxis, minorAxis) { }
         public Ellipse(Vector2 center, Vector2 direction, float majorAxis, float minorAxis)
         {
             Center = center;
@@ -124,17 +126,18 @@ namespace JA.Geometry
             if (QuadraticRoot(
                 -Sqr(a * b) + Sqr(a * py) + Sqr(b * px),
                 2 * (a * a * ey * py + b * b * ex * px),
-                Sqr(a * ey) + Sqr(b * ex), out float t1, out float t2))
+                Sqr(a * ey) + Sqr(b * ex), out float t_near, out float t_far))
             {
-                float t = Math.Min(t1, t2);
+
+                // select nearest of both postive, otherwise pick far (which should be +)
+                var t = t_near >= 0 && t_far >= 0 ? nearest ? t_near : t_far : t_far;
                 hit = ray.GetPointAlong(t);
                 float x = hit.X, y = hit.Y;
-                float d = b * b * x * x + a * a * y * y;
-                float s = Sqrt(d);
+                normal = Vector2.Normalize(new Vector2(b * x / a, a * y / b));
+                var sign = -Math.Sign(Vector2.Dot(ray.Direction, normal));
+                normal *= sign;
                 hit = this.FromLocal(hit);
-                normal = this.FromLocalDirection(
-                    Vector2.Normalize(
-                        new Vector2(b * x / a, a * y / b)));
+                normal = this.FromLocalDirection(normal);
                 return true;
             }
             hit = this.FromLocal(ray.Origin);

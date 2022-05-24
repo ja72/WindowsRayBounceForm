@@ -18,8 +18,8 @@ namespace JA.Geometry
         public Vector2 A { get; }
         public Vector2 B { get; }
 
-        public Vector2 Direction { get => Vector2.Normalize(B - A); }
-        public Vector2 Normal { get => Vector2.Normalize(new Vector2(A.Y - B.Y, B.X - A.X)); }
+        public Vector2 Direction { get => A.Equals(B) ? Vector2.Zero : Vector2.Normalize(B - A); }
+        public Vector2 Normal { get => A.Equals(B) ? Vector2.Zero : Vector2.Normalize(new Vector2(A.Y - B.Y, B.X - A.X)); }
         public float Offset => Vector2.Dot(Normal, A);
         public float Length { get => Vector2.Distance(A, B); }
         public float LengthSquared { get => Vector2.DistanceSquared(A, B); }
@@ -87,7 +87,7 @@ namespace JA.Geometry
 
         #endregion
 
-        public bool Hit(Ray ray, out Vector2 hit, out Vector2 normnal)
+        public bool Hit(Ray ray, out Vector2 hit, out Vector2 normnal, bool insideAlso = true)
         {
             float d = ray.Direction.Cross(B - A);
 
@@ -143,5 +143,9 @@ namespace JA.Geometry
             return false;
         }
 
+        public override string ToString()
+        {
+            return $"{A}-{B}";
+        }
     }
 }

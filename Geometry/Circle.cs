@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 
 namespace JA.Geometry
 {
-    public readonly struct Circle : IShape , IEquatable<Circle>
+    public readonly struct Circle : IShape, IEquatable<Circle>
     {
+        public Circle(float radius)
+            : this(Vector2.Zero, radius) { }
         public Circle(Vector2 center, float radius)
         {
             Center = center;
@@ -19,7 +21,8 @@ namespace JA.Geometry
         public Vector2 Center { get; }
         public float Radius { get; }
         public Vector2 Direction { get => Vector2.UnitX; }
-        public float Angle { get => 0; }        public float GetArea()
+        public float Angle { get => 0; }
+        public float GetArea()
         {
             return (float)(Math.PI * Radius * Radius);
         }
@@ -49,11 +52,21 @@ namespace JA.Geometry
             float C = A_sq + B * B;
             if (C >= 0)
             {
-                float t_min = -(float)Math.Sqrt(C) - B;
-                float t_max = +(float)Math.Sqrt(C) - B;
+                float t_near = -(float)Math.Sqrt(C) - B;
+                float t_far = +(float)Math.Sqrt(C) - B;
 
-                hit = ray.GetPointAlong(nearest ? t_min : t_max);
+                if (t_near < 0 && t_far < 0)
+                {
+                    hit = ray.Origin;
+                    normal = Vector2.Zero;
+                    return false;
+                }
+                // select nearest of both postive, otherwise pick far (which should be +)
+                var t = t_near >= 0 && t_far >= 0 ? nearest ? t_near : t_far : t_far;
+                hit = ray.GetPointAlong(t);
                 normal = Vector2.Normalize(hit - Center);
+                var sign = -Math.Sign(Vector2.Dot(ray.Direction, normal));
+                normal *= sign;
                 return true;
             }
             hit = ray.Origin;

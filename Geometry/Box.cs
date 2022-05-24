@@ -9,6 +9,8 @@ namespace JA.Geometry
 {
     public readonly struct Box : IShape, IEquatable<Box>
     {
+        public Box(float width, float height)
+             : this(Vector2.Zero, Vector2.Zero, width, height) { }
         public Box(Vector2 center, Vector2 direction, float width, float height)
         {
             Center = center;
@@ -50,13 +52,13 @@ namespace JA.Geometry
             => ToPolygon().GetClosestPointTo(point);
         public bool Hit(Ray ray, out Vector2 hit, out Vector2 normal, bool nearest = true)
         {
-            var localRay = this.ToLocal(ray);
+            ray = this.ToLocal(ray);
 
             // intersections with four sides of box
-            var th1 = localRay.GetDistanceToLine(Vector2.UnitY, -Height / 2);
-            var th2 = localRay.GetDistanceToLine(Vector2.UnitY, +Height / 2);
-            var tw1 = localRay.GetDistanceToLine(Vector2.UnitX, -Width / 2);
-            var tw2 = localRay.GetDistanceToLine(Vector2.UnitX, +Width / 2);
+            var th1 = ray.GetDistanceToLine(Vector2.UnitY, -Height / 2);
+            var th2 = ray.GetDistanceToLine(Vector2.UnitY, +Height / 2);
+            var tw1 = ray.GetDistanceToLine(Vector2.UnitX, -Width / 2);
+            var tw2 = ray.GetDistanceToLine(Vector2.UnitX, +Width / 2);
 
             // find nearest and farthest in each direction
             var tx_min = Math.Min(tw1, tw2);
